@@ -32,6 +32,10 @@ This tool performs automated asset discovery on local networks by directly query
 [!] No baseline found. Establishing new baseline with 4 devices.
 [+] Baseline saved to ./known_assets.json.
 
+```
+
+```text
+
 [INIT] Scanning network for physical assets...
 [+] Baseline loaded. Comparing live scan against known assets...
 
@@ -39,4 +43,4 @@ This tool performs automated asset discovery on local networks by directly query
         IP: fe80::1c4b:abcd:9999:0000
         MAC: a1-b2-c3-x9-y8-z7
 
-[SECURE] 4 live devices are authorized.
+[SECURE] 6 live devices are authorized.
