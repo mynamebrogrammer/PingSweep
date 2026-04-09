@@ -29,7 +29,7 @@ This tool performs automated asset discovery on local networks by directly query
 ```text
 
 [INIT] Scanning network for physical assets...
-[!] No baseline found. Establishing new baseline with 4 devices.
+[!] No baseline found. Establishing new baseline with 6 devices.
 [+] Baseline saved to ./known_assets.json.
 
 ```
