@@ -2,12 +2,30 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const util = require('util');
 const execPromise = util.promisify(exec);
-const ping = require('ping'); // Make sure you still have this installed!
+const ping = require('ping'); 
+const os = require('os');
 
 const ledgerFile = './known_assets.json';
-const subnetBase = '192.168.8.'; // <-- UPDATE THIS TO YOUR SUBNET
+
+function getSubnetBase() {
+    const interfaces = os.networkInterfaces();
+    
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // We want an IPv4 address that is NOT the localhost (127.0.0.1)
+            if (iface.family === 'IPv4' && !iface.internal) {
+                // If your IP is 192.168.1.45, split it into [192, 168, 1, 45]
+                const ipParts = iface.address.split('.');
+                // Recombine the first three parts and add a dot: "192.168.1."
+                return `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
+            }
+        }
+    }
+    return '192.168.1.'; // Fallback just in case
+}
 
 async function warmCache() {
+    const subnetBase = getSubnetBase();
     console.log(`[INIT] Warming up ARP cache on ${subnetBase}0/24...`);
     let pingPromises = [];
     
