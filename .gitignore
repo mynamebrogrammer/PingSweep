@@ -3,3 +3,5 @@ node_modules/
 
 # Ignore actual network asset ledgers 
 known_assets.json
+
+.env

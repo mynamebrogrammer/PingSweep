@@ -4,24 +4,57 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const ping = require('ping'); 
 const os = require('os');
+require('dotenv').config();
 
 const ledgerFile = './known_assets.json';
+
+// --- NEW CHATOPS ALERTING LOGIC ---
+async function sendDiscordAlert(device) {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    
+    // Safety check: if you didn't set up the URL in the .env file, skip the alert
+    if (!webhookUrl) return;
+
+    const payload = {
+        content: "🚨 **SECURITY ALERT: Unauthorized Asset Detected** 🚨",
+        embeds: [{
+            title: "Rogue Device Details",
+            color: 16711680, 
+            fields: [
+                { name: "MAC Address", value: device.MAC_Address, inline: true },
+                { name: "IPv4 Address", value: device.IPv4, inline: true },
+                { name: "IPv6 Address", value: device.IPv6, inline: true }
+            ],
+            footer: { text: "Authorized Asset Sentinel" },
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    try {
+        await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        console.log(`[+] SOC Alert dispatched to Discord successfully.`);
+    } catch (error) {
+        console.error(`[ERROR] Failed to send ChatOps alert: ${error.message}`);
+    }
+}
+// ----------------------------------
 
 function getSubnetBase() {
     const interfaces = os.networkInterfaces();
     
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
-            // We want an IPv4 address that is NOT the localhost (127.0.0.1)
             if (iface.family === 'IPv4' && !iface.internal) {
-                // If your IP is 192.168.1.45, split it into [192, 168, 1, 45]
                 const ipParts = iface.address.split('.');
-                // Recombine the first three parts and add a dot: "192.168.1."
                 return `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
             }
         }
     }
-    return '192.168.1.'; // Fallback just in case
+    return '192.168.1.'; 
 }
 
 async function warmCache() {
@@ -29,7 +62,6 @@ async function warmCache() {
     console.log(`[INIT] Warming up ARP cache on ${subnetBase}0/24...`);
     let pingPromises = [];
     
-    // Ping 1-254 very quickly (1 second timeout) just to force a cache update
     for (let i = 1; i < 255; i++) {
         pingPromises.push(ping.promise.probe(subnetBase + i, { timeout: 1 }));
     }
@@ -40,10 +72,8 @@ async function warmCache() {
 
 async function scanDualStackNetwork() {
     try {
-        // Step 1: Wake up the network so the cache is full
         await warmCache();
 
-        // Step 2: Read the freshly populated caches
         const [arpResult, ndpResult] = await Promise.all([
             execPromise('arp -a'),
             execPromise('netsh interface ipv6 show neighbors')
@@ -51,7 +81,6 @@ async function scanDualStackNetwork() {
 
         const deviceMap = new Map(); 
 
-        // Parse IPv4 (ARP)
         const arpLines = arpResult.stdout.split('\n');
         const arpRegex = /\s*([0-9\.]+)\s+([a-fA-F0-9-]{17})\s+/; 
         
@@ -66,7 +95,6 @@ async function scanDualStackNetwork() {
             }
         });
 
-        // Parse IPv6 (NDP)
         const ndpLines = ndpResult.stdout.split('\n');
         const ndpRegex = /^\s*([a-fA-F0-9:]+)\s+([a-fA-F0-9-]{17})\s+(Reachable|Stale|Delay|Probe)/;
         
@@ -87,7 +115,6 @@ async function scanDualStackNetwork() {
 
         const liveDevices = Array.from(deviceMap.values());
 
-        // Step 3: Compare against Ledger
         if (!fs.existsSync(ledgerFile)) {
             console.log(`[!] No baseline found. Establishing new baseline with ${liveDevices.length} devices.`);
             fs.writeFileSync(ledgerFile, JSON.stringify(liveDevices, null, 4));
@@ -103,6 +130,10 @@ async function scanDualStackNetwork() {
                     console.log(`        MAC:  ${device.MAC_Address}`);
                     console.log(`        IPv4: ${device.IPv4}`);
                     console.log(`        IPv6: ${device.IPv6}\n`);
+                    
+                    // --- TRIGGER DISCORD ALERT ---
+                    sendDiscordAlert(device);
+                    
                     rogueFound = true;
                 }
             });
