@@ -1,5 +1,5 @@
 # Ignore Node Modules
 node_modules/
 
-# Ignore actual network asset ledgers (OPSEC)
-known_assets.json
+# Ignore actual network asset ledgers 
+known-assets.json

@@ -1,0 +1,23 @@
+[
+    {
+        "device name": "Router",
+        "MAC_Address": "2a-30-44-a3-8e-90",
+        "IPv4": "192.168.200.1",
+        "IPv6": "None"
+    },
+    {
+        "MAC_Address": "a4-d7-3c-a8-23-b9",
+        "IPv4": "192.168.200.23",
+        "IPv6": "None"
+    },
+    {
+        "MAC_Address": "ec-71-db-14-3e-a6",
+        "IPv4": "192.168.200.242",
+        "IPv6": "None"
+    },
+    {
+        "MAC_Address": "ff-ff-ff-ff-ff-ff",
+        "IPv4": "192.168.200.255",
+        "IPv6": "None"
+    }
+]
