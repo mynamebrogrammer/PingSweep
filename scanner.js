@@ -158,7 +158,7 @@ async function scanDualStackNetwork() {
                     console.log(`        IPv6: ${device.IPv6}\n`);
                     
                     // --- TRIGGER DISCORD ALERT ---
-                    sendDiscordAlert(device);
+                    await sendDiscordAlert(device);
                     
                     rogueFound = true;
                 }
