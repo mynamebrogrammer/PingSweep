@@ -41,7 +41,33 @@ async function sendDiscordAlert(device) {
         console.error(`[ERROR] Failed to send ChatOps alert: ${error.message}`);
     }
 }
-// ----------------------------------
+async function sendDiscordHeartbeat(deviceCount) {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    
+    if (!webhookUrl) return;
+
+    const payload = {
+        content: "✅ **SOC Update: Scheduled Scan Complete**",
+        embeds: [{
+            title: "Network Status: SECURE",
+            color: 3066993, // Hex code for Green
+            description: `All **${deviceCount}** active devices match the authorized baseline. No anomalies detected.`,
+            footer: { text: "Authorized Asset Sentinel" },
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    try {
+        await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        console.log(`[+] SOC Heartbeat dispatched to Discord successfully.`);
+    } catch (error) {
+        console.error(`[ERROR] Failed to send ChatOps heartbeat: ${error.message}`);
+    }
+}
 
 function getSubnetBase() {
     const interfaces = os.networkInterfaces();
@@ -141,6 +167,9 @@ async function scanDualStackNetwork() {
             if (!rogueFound) {
                 console.log(`[SECURE] All ${liveDevices.length} live devices are authorized.`);
                 console.table(liveDevices);
+
+                // --- TRIGGER DISCORD HEARTBEAT ---
+                await sendDiscordHeartbeat(liveDevices.length);
             }
         }
     } catch (error) {
