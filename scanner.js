@@ -4,15 +4,28 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 const ping = require('ping'); 
 const os = require('os');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const ledgerFile = './known_assets.json';
+const hashFile = './.baseline_hash';
 
-// --- NEW CHATOPS ALERTING LOGIC ---
+// --- SECURITY: SHA-256 TAMPER DETECTION ---
+function generateFileHash(filePath) {
+    try {
+        const fileBuffer = fs.readFileSync(filePath);
+        const hashSum = crypto.createHash('sha256');
+        hashSum.update(fileBuffer);
+        return hashSum.digest('hex');
+    } catch (error) {
+        return null;
+    }
+}
+
+// --- CHATOPS: DISCORD ALERTS ---
 async function sendDiscordAlert(device) {
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     
-    // Safety check: if you didn't set up the URL in the .env file, skip the alert
     if (!webhookUrl) return;
 
     const payload = {
@@ -25,7 +38,7 @@ async function sendDiscordAlert(device) {
                 { name: "IPv4 Address", value: device.IPv4, inline: true },
                 { name: "IPv6 Address", value: device.IPv6, inline: true }
             ],
-            footer: { text: "Authorized Asset Sentinel" },
+            footer: { text: "Authorized Asset Sentinel - Phase 1" },
             timestamp: new Date().toISOString()
         }]
     };
@@ -41,6 +54,8 @@ async function sendDiscordAlert(device) {
         console.error(`[ERROR] Failed to send ChatOps alert: ${error.message}`);
     }
 }
+
+// --- CHATOPS: DISCORD HEARTBEAT ---
 async function sendDiscordHeartbeat(deviceCount) {
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     
@@ -50,9 +65,9 @@ async function sendDiscordHeartbeat(deviceCount) {
         content: "✅ **SOC Update: Scheduled Scan Complete**",
         embeds: [{
             title: "Network Status: SECURE",
-            color: 3066993, // Hex code for Green
+            color: 3066993, 
             description: `All **${deviceCount}** active devices match the authorized baseline. No anomalies detected.`,
-            footer: { text: "Authorized Asset Sentinel" },
+            footer: { text: "Authorized Asset Sentinel - Phase 1" },
             timestamp: new Date().toISOString()
         }]
     };
@@ -69,6 +84,7 @@ async function sendDiscordHeartbeat(deviceCount) {
     }
 }
 
+// --- NETWORK CORE: SUBNET DISCOVERY ---
 function getSubnetBase() {
     const interfaces = os.networkInterfaces();
     
@@ -80,9 +96,10 @@ function getSubnetBase() {
             }
         }
     }
-    return '192.168.1.'; 
+    return '192.168.1.'; // Default fallback
 }
 
+// --- NETWORK CORE: CACHE WARMING ---
 async function warmCache() {
     const subnetBase = getSubnetBase();
     console.log(`[INIT] Warming up ARP cache on ${subnetBase}0/24...`);
@@ -96,6 +113,7 @@ async function warmCache() {
     console.log(`[+] Cache warmed. Reading ledgers now...\n`);
 }
 
+// --- MAIN EXECUTION: DUAL-STACK SCAN ---
 async function scanDualStackNetwork() {
     try {
         await warmCache();
@@ -107,6 +125,7 @@ async function scanDualStackNetwork() {
 
         const deviceMap = new Map(); 
 
+        // Parse IPv4
         const arpLines = arpResult.stdout.split('\n');
         const arpRegex = /\s*([0-9\.]+)\s+([a-fA-F0-9-]{17})\s+/; 
         
@@ -121,6 +140,7 @@ async function scanDualStackNetwork() {
             }
         });
 
+        // Parse IPv6
         const ndpLines = ndpResult.stdout.split('\n');
         const ndpRegex = /^\s*([a-fA-F0-9:]+)\s+([a-fA-F0-9-]{17})\s+(Reachable|Stale|Delay|Probe)/;
         
@@ -141,15 +161,44 @@ async function scanDualStackNetwork() {
 
         const liveDevices = Array.from(deviceMap.values());
 
+        // --- SECURITY CORE: BASELINE COMPARISON ---
         if (!fs.existsSync(ledgerFile)) {
             console.log(`[!] No baseline found. Establishing new baseline with ${liveDevices.length} devices.`);
             fs.writeFileSync(ledgerFile, JSON.stringify(liveDevices, null, 4));
+            
+            // SEAL THE BASELINE
+            const baselineHash = generateFileHash(ledgerFile);
+            if (baselineHash) {
+                fs.writeFileSync(hashFile, baselineHash);
+                console.log(`[+] Baseline sealed with SHA-256 Hash: ${baselineHash.substring(0, 8)}...`);
+            }
         } else {
+            // TAMPER CHECK
+            const currentHash = generateFileHash(ledgerFile);
+            let savedHash = '';
+            
+            try {
+                savedHash = fs.readFileSync(hashFile, 'utf8');
+            } catch (err) {
+                console.error(`[CRITICAL] Missing .baseline_hash file! Delete known_assets.json to rebuild the baseline safely.`);
+                process.exit(1);
+            }
+
+            if (currentHash !== savedHash) {
+                console.error(`\n[CRITICAL] TAMPER DETECTED! The known_assets.json file has been modified outside the script!`);
+                console.error(`Expected: ${savedHash}`);
+                console.error(`Found:    ${currentHash}\n`);
+                process.exit(1);
+            }
+
+            console.log(`[+] Integrity Check Passed. Baseline is secure.`);
+
+            // INTRUSION DETECTION
             const rawData = fs.readFileSync(ledgerFile);
             const knownAssets = JSON.parse(rawData);
             const knownMacs = knownAssets.map(asset => asset.MAC_Address);
 
-let rogueFound = false;
+            let rogueFound = false;
             for (const device of liveDevices) {
                 if (!knownMacs.includes(device.MAC_Address)) {
                     console.log(`[ALERT] UNAUTHORIZED DEVICE DETECTED!`);
@@ -157,9 +206,7 @@ let rogueFound = false;
                     console.log(`        IPv4: ${device.IPv4}`);
                     console.log(`        IPv6: ${device.IPv6}\n`);
 
-                    // Now 'await' will work perfectly here!
                     await sendDiscordAlert(device);
-
                     rogueFound = true;
                 }
             }
@@ -167,8 +214,6 @@ let rogueFound = false;
             if (!rogueFound) {
                 console.log(`[SECURE] All ${liveDevices.length} live devices are authorized.`);
                 console.table(liveDevices);
-
-                // --- TRIGGER DISCORD HEARTBEAT ---
                 await sendDiscordHeartbeat(liveDevices.length);
             }
         }
@@ -177,4 +222,5 @@ let rogueFound = false;
     }
 }
 
+// Ignite the Sentinel
 scanDualStackNetwork();
