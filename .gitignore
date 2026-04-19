@@ -5,3 +5,9 @@ node_modules/
 known_assets.json
 
 .env
+
+# Ignore baseline hash file
+baseline_hashes.json
+.baseline_hash
+
+
