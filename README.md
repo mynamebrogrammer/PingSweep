@@ -13,7 +13,7 @@ This tool performs automated asset discovery on local networks by directly query
 
 ## Installation & Setup
 
-1. **Clone the repository:**
+1. **Clone the repository**
 2. 
         npm install ping dotenv 
         npm install -g pm2
@@ -44,14 +44,6 @@ This tool performs automated asset discovery on local networks by directly query
    save the current PM2 process list and configuration:
    ```bash 
    pm2 save
-
-## Execution Flow
-1. **System Query:** The script executes native OS commands (`netsh` for Windows, `ndp/arp` for Unix) to quietly read the local network cache without triggering IDS/IPS alerts via noisy active pinging.
-2. **Data Normalization:** Custom Regular Expressions (Regex) parse the raw terminal output, stripping away multicast noise to isolate physical IPv4/IPv6 addresses and their corresponding MAC addresses.
-3. **Baseline Comparison:** The live network state is cross-referenced against the established `known_assets.json` ledger.
-4. **Intrusion Alerting:** If a detected MAC address lacks authorization in the ledger, the system immediately flags it as a rogue device.
-5. **Continuous Monitoring:** Managed by PM2 to run autonomously in the background, executing scheduled sweeps twice daily.
-6. **ChatOps Integration:** Pushes real-time alerts to a dedicated Discord webhook upon detecting an intrusion, and sends a daily "Health Check" heartbeat to confirm the network baseline remains secure.
 
 ## Terminal Demonstration
 *Note: IP and MAC addresses below have been sanitized for OPSEC purposes.*
