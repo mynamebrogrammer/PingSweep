@@ -149,20 +149,20 @@ async function scanDualStackNetwork() {
             const knownAssets = JSON.parse(rawData);
             const knownMacs = knownAssets.map(asset => asset.MAC_Address);
 
-            let rogueFound = false;
-            liveDevices.forEach(device => {
+let rogueFound = false;
+            for (const device of liveDevices) {
                 if (!knownMacs.includes(device.MAC_Address)) {
                     console.log(`[ALERT] UNAUTHORIZED DEVICE DETECTED!`);
                     console.log(`        MAC:  ${device.MAC_Address}`);
                     console.log(`        IPv4: ${device.IPv4}`);
                     console.log(`        IPv6: ${device.IPv6}\n`);
-                    
-                    // --- TRIGGER DISCORD ALERT ---
+
+                    // Now 'await' will work perfectly here!
                     await sendDiscordAlert(device);
-                    
+
                     rogueFound = true;
                 }
-            });
+            }
 
             if (!rogueFound) {
                 console.log(`[SECURE] All ${liveDevices.length} live devices are authorized.`);
