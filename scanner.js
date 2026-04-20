@@ -10,7 +10,7 @@ require('dotenv').config();
 const ledgerFile = './known_assets.json';
 const hashFile = './.baseline_hash';
 
-// --- SECURITY: SHA-256 TAMPER DETECTION ---
+// SECURITY: SHA-256 TAMPER DETECTION 
 function generateFileHash(filePath) {
     try {
         const fileBuffer = fs.readFileSync(filePath);
@@ -22,7 +22,7 @@ function generateFileHash(filePath) {
     }
 }
 
-// --- CHATOPS: DISCORD ALERTS ---
+// DISCORD ALERTS
 async function sendDiscordAlert(device) {
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     
@@ -55,7 +55,7 @@ async function sendDiscordAlert(device) {
     }
 }
 
-// --- CHATOPS: DISCORD HEARTBEAT ---
+// DISCORD HEARTBEAT
 async function sendDiscordHeartbeat(deviceCount) {
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     
@@ -84,7 +84,7 @@ async function sendDiscordHeartbeat(deviceCount) {
     }
 }
 
-// --- NETWORK CORE: SUBNET DISCOVERY ---
+// SUBNET DISCOVERY
 function getSubnetBase() {
     const interfaces = os.networkInterfaces();
     
@@ -99,7 +99,7 @@ function getSubnetBase() {
     return '192.168.1.'; // Default fallback
 }
 
-// --- NETWORK CORE: CACHE WARMING ---
+// CACHE WARMING
 async function warmCache() {
     const subnetBase = getSubnetBase();
     console.log(`[INIT] Warming up ARP cache on ${subnetBase}0/24...`);
@@ -113,7 +113,6 @@ async function warmCache() {
     console.log(`[+] Cache warmed. Reading ledgers now...\n`);
 }
 
-// --- MAIN EXECUTION: DUAL-STACK SCAN ---
 async function scanDualStackNetwork() {
     try {
         await warmCache();
@@ -161,12 +160,11 @@ async function scanDualStackNetwork() {
 
         const liveDevices = Array.from(deviceMap.values());
 
-        // --- SECURITY CORE: BASELINE COMPARISON ---
+        //  BASELINE COMPARISON 
         if (!fs.existsSync(ledgerFile)) {
             console.log(`[!] No baseline found. Establishing new baseline with ${liveDevices.length} devices.`);
             fs.writeFileSync(ledgerFile, JSON.stringify(liveDevices, null, 4));
             
-            // SEAL THE BASELINE
             const baselineHash = generateFileHash(ledgerFile);
             if (baselineHash) {
                 fs.writeFileSync(hashFile, baselineHash);
