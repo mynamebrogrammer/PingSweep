@@ -141,7 +141,7 @@ function getSubnetBase() {
       }
     }
   }
-  return "192.168.1."; // Default fallback
+  return "Could not determine a non-internal IPv4 Subnet"; // Default fallback
 }
 
 // CACHE WARMING
@@ -231,7 +231,7 @@ async function scanDualStackNetwork() {
       if (baselineHash) {
         fs.writeFileSync(hashFile, baselineHash);
         console.log(
-          `[+] Baseline sealed with SHA-256 Hash: ${baselineHash.substring(0, 8)}...`,
+          `[+] Baseline sealed: ${baselineHash.substring(0, 8)}...`,
         );
       }
     } else {
