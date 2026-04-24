@@ -146,16 +146,31 @@ function getSubnetBase() {
 
 // CACHE WARMING
 async function warmCache() {
-  const subnetBase = getSubnetBase();
-  console.log(`[INIT] Warming up ARP cache on ${subnetBase}0/24...`);
-  let pingPromises = [];
+    const subnetBase = getSubnetBase();
+    
+    if (!subnetBase) {
+        throw new Error("No active network connection found. Scan aborted.");
+    }
 
-  for (let i = 1; i < 255; i++) {
-    pingPromises.push(ping.promise.probe(subnetBase + i, { timeout: 1 }));
-  }
+    console.log(`[INIT] Warming up ARP cache on ${subnetBase}0/24...`);
+    
+    // Create a list of all 254 IPs we want to scan
+    const ipsToPing = [];
+    for (let i = 1; i < 255; i++) {
+        ipsToPing.push(`${subnetBase}${i}`);
+    }
 
-  await Promise.all(pingPromises);
-  console.log(`[+] Cache warmed. Reading ledgers now...\n`);
+    // TRAFFIC CONTROL: Send pings in batches of 50 to prevent OS-level packet drops
+    const batchSize = 50;
+    for (let i = 0; i < ipsToPing.length; i += batchSize) {
+        const batch = ipsToPing.slice(i, i + batchSize);
+        const promises = batch.map(ip => ping.promise.probe(ip, { timeout: 1 }));
+        await Promise.all(promises);
+    }
+    
+    console.log(`[+] Pings sent. Waiting 2 seconds for ARP table to populate...`);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log(`[+] Cache warmed. Reading ledgers now...\n`);
 }
 
 async function scanDualStackNetwork() {
