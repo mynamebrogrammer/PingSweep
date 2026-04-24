@@ -181,7 +181,9 @@ async function scanDualStackNetwork() {
         if (
           !ip.startsWith("224.") &&
           !ip.startsWith("239.") &&
-          ip !== "255.255.255.255"
+          ip !== "255.255.255.255" &&
+          mac !== "ff-ff-ff-ff-ff-ff"
+
         ) {
           deviceMap.set(mac, { MAC_Address: mac, IPv4: ip, IPv6: "None" });
         }
