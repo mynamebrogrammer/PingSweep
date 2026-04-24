@@ -233,7 +233,7 @@ async function scanDualStackNetwork() {
       if (baselineHash) {
         fs.writeFileSync(hashFile, baselineHash);
         console.log(
-          `[+] Baseline sealed: ${baselineHash.substring(0, 8)}...`,
+          `[+] Baseline completed`,
         );
       }
     } else {
@@ -245,7 +245,7 @@ async function scanDualStackNetwork() {
         savedHash = fs.readFileSync(hashFile, "utf8");
       } catch (err) {
         console.error(
-          `[CRITICAL] Missing .baseline_hash file! Delete known_assets.json to rebuild the baseline safely.`,
+          `[CRITICAL] Missing .baseline_hash file!`,
         );
         process.exit(1);
       }
