@@ -7,13 +7,12 @@ const os = require("os");
 const crypto = require("crypto");
 const net = require("net");
 
-const TARGET_PORTS = [21, 22, 23, 50, 54, 80, 443, 445, 3389];
-
 require("dotenv").config();
 
-const ledgerFile = "./known_assets.json";
-const hashFile = "./.baseline_hash";
+const ledgerFile = process.env.LEDGER_FILE_PATH;
+const hashFile = process.env.HASH_FILE_PATH;
 
+const TARGET_PORTS = process.env.TARGET_PORTS.split(",").map(Number);
 // SECURITY: SHA-256 TAMPER DETECTION
 function generateFileHash(filePath) {
   try {
