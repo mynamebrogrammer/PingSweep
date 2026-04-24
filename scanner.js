@@ -12,7 +12,9 @@ require("dotenv").config();
 const ledgerFile = process.env.LEDGER_FILE_PATH;
 const hashFile = process.env.HASH_FILE_PATH;
 
-const TARGET_PORTS = process.env.TARGET_PORTS.split(",").map(Number);
+const TARGET_PORTS = process.env.TARGET_PORTS 
+    ? process.env.TARGET_PORTS.split(',').map(Number) 
+    : [21, 22, 23, 80, 443, 445, 3389];
 // SECURITY: SHA-256 TAMPER DETECTION
 function generateFileHash(filePath) {
   try {
